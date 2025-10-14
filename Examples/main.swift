@@ -1,253 +1,280 @@
 import Foundation
 import JsonParserKit
 
-// MARK: - Example Models
-
 @JsonCodable
 struct User {
     let id: Int
     let name: String
-    @JsonKey("email_address")
-    let email: String
-    @JsonKey(defaultValue: "active")
-    let status: String
-    let age: Int?
-    @JsonKey(defaultValue: 0.0)
-    let score: Double
+    var email: String?
+    @JsonKey("user_age") var age: Int
+    var nickname: String? = "Anonymous"
+    var isActive: Bool = true
+    @JsonExclude var internalId: String = UUID().uuidString
+    var tags: [String]?
+    @JsonKey("phone_number") var phoneNumber: String?
 }
 
 @JsonCodable
 struct Product {
     let id: String
-    let name: String
-    let price: Double
-    @JsonKey("in_stock", defaultValue: true)
-    let isAvailable: Bool
-    let tags: [String]
-    let metadata: [String: String]?
+    let title: String
+    var price: Double
+    @JsonKey("discount_percentage") var discountPercentage: Double? = 0.0
+    var inStock: Bool = true
+    @JsonExclude var cache: String? = nil
+    
+    init(id: String, title: String, price: Double) {
+        self.id = id
+        self.title = title
+        self.price = price
+    }
 }
 
 @JsonCodable
-struct Order {
-    let id: String
-    let customer: User
-    let items: [Product]
-    let total: Double
-    @JsonKey(defaultValue: "pending")
+struct Address {
+    let street: String
+    let city: String
+    @JsonKey("zip_code") let zipCode: String
+    var apartment: String?
+    var floor: Int? = 1
+}
+
+func testUserParsing() {
+    print("Testing User Parsing...")
+    print("-" * 50)
+    
+    let json = """
+    {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "user_age": 30,
+        "tags": ["developer", "swift"],
+        "phone_number": "+1234567890"
+    }
+    """
+    
+    do {
+        let data = json.data(using: .utf8)!
+        let user = try JSONDecoder().decode(User.self, from: data)
+        
+        print("Decoded User:")
+        print("  ID: \(user.id)")
+        print("  Name: \(user.name)")
+        print("  Email: \(user.email ?? "nil")")
+        print("  Age: \(user.age)")
+        print("  Nickname: \(user.nickname ?? "nil")")
+        print("  Is Active: \(user.isActive)")
+        print("  Tags: \(user.tags ?? [])")
+        print("  Phone: \(user.phoneNumber ?? "nil")")
+        print("  Internal ID (excluded): \(user.internalId)")
+        
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let encoded = try encoder.encode(user)
+        print("\nRe-encoded JSON:")
+        print(String(data: encoded, encoding: .utf8)!)
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+func testUserWithDefaults() {
+    print("\nTesting User with Default Values...")
+    print("-" * 50)
+    
+    let json = """
+    {
+        "id": 2,
+        "name": "Jane Smith",
+        "user_age": 25
+    }
+    """
+    
+    do {
+        let data = json.data(using: .utf8)!
+        let user = try JSONDecoder().decode(User.self, from: data)
+        
+        print("Decoded User (with defaults):")
+        print("  ID: \(user.id)")
+        print("  Name: \(user.name)")
+        print("  Email: \(user.email ?? "nil")")
+        print("  Age: \(user.age)")
+        print("  Nickname: \(user.nickname ?? "nil") (default)")
+        print("  Is Active: \(user.isActive) (default)")
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+func testProductParsing() {
+    print("\nTesting Product (Class) Parsing...")
+    print("-" * 50)
+    
+    let json = """
+    {
+        "id": "PROD-001",
+        "title": "MacBook Pro",
+        "price": 2499.99,
+        "discount_percentage": 10.5
+    }
+    """
+    
+    do {
+        let data = json.data(using: .utf8)!
+        let product = try JSONDecoder().decode(Product.self, from: data)
+        
+        print("Decoded Product:")
+        print("  ID: \(product.id)")
+        print("  Title: \(product.title)")
+        print("  Price: $\(product.price)")
+        print("  Discount: \(product.discountPercentage ?? 0)%")
+        print("  In Stock: \(product.inStock) (default)")
+        
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let encoded = try encoder.encode(product)
+        print("\nRe-encoded JSON:")
+        print(String(data: encoded, encoding: .utf8)!)
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+func testAddressParsing() {
+    print("\nTesting Address Parsing...")
+    print("-" * 50)
+    
+    let json = """
+    {
+        "street": "123 Main St",
+        "city": "New York",
+        "zip_code": "10001",
+        "apartment": "4B"
+    }
+    """
+    
+    do {
+        let data = json.data(using: .utf8)!
+        let address = try JSONDecoder().decode(Address.self, from: data)
+        
+        print("Decoded Address:")
+        print("  Street: \(address.street)")
+        print("  City: \(address.city)")
+        print("  Zip Code: \(address.zipCode)")
+        print("  Apartment: \(address.apartment ?? "nil")")
+        print("  Floor: \(address.floor ?? 0)")
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+func testAddressWithDefaults() {
+    print("\nTesting Address with Default Floor...")
+    print("-" * 50)
+    
+    let json = """
+    {
+        "street": "456 Oak Ave",
+        "city": "Los Angeles",
+        "zip_code": "90001"
+    }
+    """
+    
+    do {
+        let data = json.data(using: .utf8)!
+        let address = try JSONDecoder().decode(Address.self, from: data)
+        
+        print("Decoded Address (with default floor):")
+        print("  Street: \(address.street)")
+        print("  City: \(address.city)")
+        print("  Zip Code: \(address.zipCode)")
+        print("  Apartment: \(address.apartment ?? "nil")")
+        print("  Floor: \(address.floor ?? 0) (default)")
+    } catch {
+        print("Error: \(error)")
+    }
+}
+
+// Example with JsonDecodable (decode only)
+@JsonDecodable
+struct ApiRequest {
+    let endpoint: String
+    @JsonKey("api_key") let apiKey: String
+    let timestamp: Date?
+}
+
+// Example with JsonEncodable (encode only)
+@JsonEncodable
+struct ApiResponse {
     let status: String
-    
-    @JsonKey("product", defaultValue: Product(
-        id: "prod123",
-        name: "iPhone 15",
-        price: 999.99,
-        isAvailable: true,
-        tags: ["electronics", "smartphone", "apple"],
-        metadata: ["color": "black", "storage": "128GB"]
-    ))
-    let product: Product
+    @JsonKey("response_data") let responseData: String
+    var timestamp: Date = Date()
+    @JsonExclude var cached: Bool = false
 }
 
-// MARK: - Example Usage
-
-func runBasicExample() {
-    print("=== JsonParserKit Basic Example ===\n")
+func testJsonDecodable() {
+    print("\nTesting JsonDecodable (decode only)...")
+    print("-" * 50)
     
-    // Create a user
-    let user = User(
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        status: "active",
-        age: 30,
-        score: 95.5
-    )
+    let json = """
+    {
+        "endpoint": "/api/users",
+        "api_key": "secret123"
+    }
+    """
     
-    print("Created user: \(user.name) (ID: \(user.id))")
-    
-    // Encode to JSON
     do {
-        let jsonString = try user.toJSONString(prettyPrint: true)
-        print("\nUser as JSON:")
-        print(jsonString)
+        let data = json.data(using: .utf8)!
+        let request = try JSONDecoder().decode(ApiRequest.self, from: data)
         
-        // Decode from JSON
-        let decodedUser = try User.fromJSONString(jsonString)
-        print("\nDecoded user: \(decodedUser.name) (ID: \(decodedUser.id))")
+        print("Decoded ApiRequest:")
+        print("  Endpoint: \(request.endpoint)")
+        print("  API Key: \(request.apiKey)")
+        print("  Timestamp: \(request.timestamp?.description ?? "nil")")
         
+        // This would fail to compile because ApiRequest is not Encodable
+        // let encoded = try JSONEncoder().encode(request)
     } catch {
         print("Error: \(error)")
     }
 }
 
-func runCustomKeysExample() {
-    print("\n=== Custom JSON Keys Example ===\n")
+func testJsonEncodable() {
+    print("\nTesting JsonEncodable (encode only)...")
+    print("-" * 50)
     
-    let product = Product(
-        id: "prod123",
-        name: "iPhone 15",
-        price: 999.99,
-        isAvailable: true,
-        tags: ["electronics", "smartphone", "apple"],
-        metadata: ["color": "black", "storage": "128GB"]
+    let response = ApiResponse(
+        status: "success",
+        responseData: "User data retrieved"
     )
     
-    print("Created product: \(product.name) (ID: \(product.id))")
-    
     do {
-        let jsonString = try product.toJSONString(prettyPrint: true)
-        print("\nProduct as JSON (note custom keys):")
-        print(jsonString)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let encoded = try encoder.encode(response)
+        print("Encoded ApiResponse:")
+        print(String(data: encoded, encoding: .utf8)!)
         
-        // Notice how "in_stock" is used instead of "isAvailable"
-        // and the custom key mapping is applied
-        
+        // This would fail to compile because ApiResponse is not Decodable
+        // let decoded = try JSONDecoder().decode(ApiResponse.self, from: encoded)
     } catch {
         print("Error: \(error)")
     }
 }
 
-func runDefaultValuesExample() {
-    print("\n=== Default Values Example ===\n")
-    
-    let order = Order(
-        id: "order456",
-        customer: User(
-            id: 2,
-            name: "Jane Smith",
-            email: "jane@example.com",
-            status: "active",
-            age: 25,
-            score: 88.0
-        ),
-        items: [
-            Product(
-                id: "prod1",
-                name: "Laptop",
-                price: 1299.99,
-                isAvailable: true,
-                tags: ["electronics", "computer"],
-                metadata: nil
-            )
-        ],
-        total: 1299.99
-        // Note: status is not provided, so default value "pending" will be used
-    )
-    
-    print("Created order: \(order.id) for \(order.customer.name)")
-    print("Order status: \(order.status)") // Will show default value "pending"
-    
-    do {
-        let jsonString = try order.toJSONString(prettyPrint: true)
-        print("\nOrder as JSON:")
-        print(jsonString)
-        
-    } catch {
-        print("Error: \(error)")
+testUserParsing()
+testUserWithDefaults()
+testProductParsing()
+testAddressParsing()
+testAddressWithDefaults()
+testJsonDecodable()
+testJsonEncodable()
+
+print("\n✅ All tests completed!")
+
+extension String {
+    static func *(lhs: String, rhs: Int) -> String {
+        String(repeating: lhs, count: rhs)
     }
 }
-
-func runComplexNestedExample() {
-    print("\n=== Complex Nested Objects Example ===\n")
-    
-    let complexOrder = Order(
-        id: "complex789",
-        customer: User(
-            id: 3,
-            name: "Bob Johnson",
-            email: "bob@example.com",
-            status: "active",
-            age: 35,
-            score: 92.0
-        ),
-        items: [
-            Product(
-                id: "prod2",
-                name: "Headphones",
-                price: 199.99,
-                isAvailable: true,
-                tags: ["audio", "wireless"],
-                metadata: ["brand": "Sony", "color": "white"]
-            ),
-            Product(
-                id: "prod3",
-                name: "Mouse",
-                price: 49.99,
-                isAvailable: false,
-                tags: ["computer", "accessory"],
-                metadata: ["brand": "Logitech"]
-            )
-        ],
-        total: 249.98,
-        status: "confirmed"
-    )
-    
-    print("Created complex order: \(complexOrder.id)")
-    print("Customer: \(complexOrder.customer.name)")
-    print("Items: \(complexOrder.items.count)")
-    print("Total: $\(complexOrder.total)")
-    
-    do {
-        let jsonString = try complexOrder.toJSONString(prettyPrint: true)
-        print("\nComplex order as JSON:")
-        print(jsonString)
-        
-        // Test decoding
-        let decodedOrder = try Order.fromJSONString(jsonString)
-        print("\nSuccessfully decoded order with \(decodedOrder.items.count) items")
-        
-    } catch {
-        print("Error: \(error)")
-    }
-}
-
-func runJsonParserMethodsExample() {
-    print("\n=== JsonParser Static Methods Example ===\n")
-    
-    let user = User(
-        id: 4,
-        name: "Alice Brown",
-        email: "alice@example.com",
-        status: "active",
-        age: 28,
-        score: 87.0
-    )
-    
-    do {
-        // Using JsonParser static methods
-        let jsonString = try JsonParser.encode(user, prettyPrint: true)
-        let jsonData = try JsonParser.encode(user)
-        let dictionary = try JsonParser.encodeToDictionary(user)
-        
-        print("Encoded to string: \(jsonString.prefix(50))...")
-        print("Encoded to data: \(jsonData.count) bytes")
-        print("Encoded to dictionary: \(dictionary.keys.joined(separator: ", "))")
-        
-        // Decode using different methods
-        let userFromString = try JsonParser.decode(jsonString, as: User.self)
-        let userFromData = try JsonParser.decode(jsonData, as: User.self)
-        let userFromDict = try JsonParser.decodeFromDictionary(dictionary, as: User.self)
-        
-        print("\nAll decode methods successful:")
-        print("- From string: \(userFromString.name)")
-        print("- From data: \(userFromData.name)")
-        print("- From dictionary: \(userFromDict.name)")
-        
-    } catch {
-        print("Error: \(error)")
-    }
-}
-
-// MARK: - Main Function
-
-func main() {
-    runBasicExample()
-    runCustomKeysExample()
-    runDefaultValuesExample()
-    runComplexNestedExample()
-    runJsonParserMethodsExample()
-    
-    print("\n=== Example Complete ===")
-}
-
-// Call the main function
-main()

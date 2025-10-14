@@ -1,15 +1,18 @@
+import SwiftCompilerPlugin
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-public struct JsonKeyMacro: PeerMacro {
+/// A marker macro for excluding properties from JSON serialization
+public struct JsonExcludeMacro: PeerMacro {
+    
     public static func expansion(
         of node: AttributeSyntax,
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        // This macro is purely for annotation purposes
-        // The actual logic is handled in JsonCodableMacro
-        return []
+        // This is a marker macro, no code generation needed
+        []
     }
 }
