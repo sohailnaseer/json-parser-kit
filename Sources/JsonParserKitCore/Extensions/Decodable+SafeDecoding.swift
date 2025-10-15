@@ -6,12 +6,12 @@ extension KeyedDecodingContainer {
         var elements: [T] = []
         
         while !container.isAtEnd {
-            if let element = try? container.decode(T.self) {
-                elements.append(element)
-            } else {
-                // Skip this element if it can't be decoded
+            guard let element = try? container.decode(T.self) else {
                 _ = try? container.superDecoder()
+                continue
             }
+
+            elements.append(element)
         }
         
         return elements
