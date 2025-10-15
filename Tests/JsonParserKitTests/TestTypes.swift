@@ -134,3 +134,20 @@ struct ItemList {
     var items: [Item]
     let totalCount: Int
 }
+
+// MARK: - Safe Array Decoding Test Types
+
+@JsonCodable
+struct ComplexItem {
+    let id: Int
+    let name: String
+    let value: Double
+    let tags: [String]
+}
+
+@JsonCodable
+struct ComplexItemList {
+    var items: [ComplexItem]
+    var optionalItems: [ComplexItem] = []
+    let metadata: [String: String]
+}

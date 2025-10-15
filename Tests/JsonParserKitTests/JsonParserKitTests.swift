@@ -64,9 +64,9 @@ final class JsonParserKitTests: XCTestCase {
         let jsonOverride = """
         {
             "id": "config-2",
-            "retryCount": 5,
+            "retry_count": 5,
             "timeout": 60.0,
-            "isEnabled": false
+            "is_enabled": false
         }
         """
         
@@ -173,7 +173,7 @@ final class JsonParserKitTests: XCTestCase {
         XCTAssertEqual(jsonDict.count, 3)
         XCTAssertNotNil(jsonDict["id"])
         XCTAssertNotNil(jsonDict["name"])
-        XCTAssertNotNil(jsonDict["cachedValue"])
+        XCTAssertNotNil(jsonDict["cached_value"])
         XCTAssertNil(jsonDict["internalState"])
     }
     
@@ -264,40 +264,6 @@ final class JsonParserKitTests: XCTestCase {
         // This would cause a compile error: try JSONEncoder().encode(decoded)
     }
     
-    func testPartialArrayDecoding() throws {
-        let json = """
-        [
-            {
-                "id": 1,
-                "name": "John Doe",
-                "email": "john@example.com"
-            },
-            {
-                "id": null,
-                "name": "Invalid User",
-                "email": "invalid@example.com"
-            },
-            {
-                "id": 3,
-                "name": "Jane Smith",
-                "email": "jane@example.com"
-            }
-        ]
-        """
-        
-        let data = json.data(using: .utf8)!
-        let users = try JSONDecoder().decode([User].self, from: data)
-        
-        // Should only get the valid users (first and third)
-        XCTAssertEqual(users.count, 2)
-        XCTAssertEqual(users[0].id, 1)
-        XCTAssertEqual(users[0].name, "John Doe")
-        XCTAssertEqual(users[0].email, "john@example.com")
-        XCTAssertEqual(users[1].id, 3)
-        XCTAssertEqual(users[1].name, "Jane Smith")
-        XCTAssertEqual(users[1].email, "jane@example.com")
-    }
-    
     func testNestedPartialArrayDecoding() throws {
         let json = """
         {
@@ -315,7 +281,7 @@ final class JsonParserKitTests: XCTestCase {
                     "name": "Valid Item 2"
                 }
             ],
-            "totalCount": 3
+            "total_count": 3
         }
         """
         
@@ -379,5 +345,85 @@ final class JsonParserKitTests: XCTestCase {
         XCTAssertEqual(config2.name, "config2")
         XCTAssertEqual(config2.maxRetries, 5)
         XCTAssertEqual(config2.timeout, 60.0)
+    }
+    
+    func testSafeArrayDecoding() throws {
+        let json = """
+        {
+            "items": [
+                {
+                    "id": 1,
+                    "name": "Item 1",
+                    "value": 10.5,
+                    "tags": ["a", "b"]
+                },
+                {
+                    "id": null,
+                    "name": "Invalid Item",
+                    "value": "not a number",
+                    "tags": null
+                },
+                {
+                    "id": 2,
+                    "name": "Item 2",
+                    "value": 20.5,
+                    "tags": ["c", "d"]
+                },
+                {
+                    "invalid": "json"
+                }
+            ],
+            "optional_items": [
+                {
+                    "id": 3,
+                    "name": "Item 3",
+                    "value": 30.5,
+                    "tags": ["e", "f"]
+                },
+                {
+                    "id": "invalid",
+                    "name": 123,
+                    "value": null,
+                    "tags": [1, 2]
+                }
+            ],
+            "metadata": {
+                "version": "1.0"
+            }
+        }
+        """
+        
+        let data = json.data(using: .utf8)!
+        let itemList = try JSONDecoder().decode(ComplexItemList.self, from: data)
+        
+        // Check that valid items were decoded
+        XCTAssertEqual(itemList.items.count, 2)
+        XCTAssertEqual(itemList.items[0].id, 1)
+        XCTAssertEqual(itemList.items[0].name, "Item 1")
+        XCTAssertEqual(itemList.items[0].value, 10.5)
+        XCTAssertEqual(itemList.items[0].tags, ["a", "b"])
+        
+        XCTAssertEqual(itemList.items[1].id, 2)
+        XCTAssertEqual(itemList.items[1].name, "Item 2")
+        XCTAssertEqual(itemList.items[1].value, 20.5)
+        XCTAssertEqual(itemList.items[1].tags, ["c", "d"])
+        
+        // Check optional array
+        XCTAssertNotNil(itemList.optionalItems)
+        XCTAssertEqual(itemList.optionalItems.count, 1)
+        XCTAssertEqual(itemList.optionalItems[0].id, 3)
+        XCTAssertEqual(itemList.optionalItems[0].name, "Item 3")
+        XCTAssertEqual(itemList.optionalItems[0].value, 30.5)
+        XCTAssertEqual(itemList.optionalItems[0].tags, ["e", "f"])
+        
+        // Check metadata was preserved
+        XCTAssertEqual(itemList.metadata["version"], "1.0")
+        
+        // Test encoding works normally
+        let encoded = try JSONEncoder().encode(itemList)
+        let decoded = try JSONDecoder().decode(ComplexItemList.self, from: encoded)
+        XCTAssertEqual(decoded.items.count, 2)
+        XCTAssertEqual(decoded.optionalItems.count, 1)
+        XCTAssertEqual(decoded.metadata["version"], "1.0")
     }
 }

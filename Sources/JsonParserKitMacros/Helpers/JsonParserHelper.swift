@@ -100,18 +100,18 @@ final class JsonParserHelper {
     private func generateDecodingStatement(for property: PropertyInfo) -> String {
         let propertyName = property.name
         let unwrappedType = property.unwrappedType
+        let defaultExpr = property.defaultValueExpr
         let keyPath = ".\(propertyName)"
+        let isOnlyArray = property.isArray && !property.isDictionary
+        let methodName = isOnlyArray ? "decodeSafe" : "decode"
+        let methodNameOptional = isOnlyArray ? "decodeSafeIfPresent" : "decodeIfPresent"
         
-        switch (property.isOptional, property.hasDefaultValue, property.defaultValueExpr) {
-        case (true, true, .some(let defaultExpr)),
-            (false, true, .some(let defaultExpr)):
-            return "self.\(propertyName) = (try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
-            
-        case (true, false, _):
-            return "self.\(propertyName) = try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))"
-
-        default:
-            return "self.\(propertyName) = try container.decode(\(unwrappedType).self, forKey: \(keyPath))"
+        if property.hasDefaultValue, let defaultExpr {
+            return "self.\(propertyName) = (try? container.\(methodNameOptional)(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
+        } else if property.isOptional {
+            return "self.\(propertyName) = try? container.\(methodNameOptional)(\(unwrappedType).self, forKey: \(keyPath))"
+        } else {
+            return "self.\(propertyName) = try container.\(methodName)(\(unwrappedType).self, forKey: \(keyPath))"
         }
     }
     

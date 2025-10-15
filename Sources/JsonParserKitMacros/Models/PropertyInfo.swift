@@ -43,4 +43,29 @@ struct PropertyInfo {
         
         return typeString
     }
+    
+    /// Whether the property type is an array
+    var isArray: Bool {
+        guard let type = type else { 
+            return false 
+        }
+
+        let typeString = type.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isShortArraySyntax = typeString.hasPrefix("[") && (typeString.hasSuffix("]") || typeString.hasSuffix("]?"))
+        let isArraySyntax = typeString.hasPrefix("Array<") && (typeString.hasSuffix(">") || typeString.hasSuffix(">?"))
+
+        return isShortArraySyntax || isArraySyntax
+    }
+
+    var isDictionary: Bool {
+        guard let type = type else { 
+            return false 
+        }
+
+        let typeString = type.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isShortDictionarySyntax = typeString.contains(":") && typeString.hasPrefix("[") && (typeString.hasSuffix("]") || typeString.hasSuffix("]?"))
+        let isDictionarySyntax = typeString.hasPrefix("Dictionary<") && (typeString.hasSuffix(">") || typeString.hasSuffix(">?"))
+
+        return isShortDictionarySyntax || isDictionarySyntax
+    }
 }
