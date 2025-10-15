@@ -12,11 +12,10 @@ A powerful Swift JSON parsing library that leverages Swift's built-in `Codable` 
 - 🛡️ **Safe Array Decoding**: Skip invalid elements instead of failing
 - 📱 **Platform Support**: Works on iOS, macOS, tvOS, and watchOS
 - ⚡ **Performance**: Built on Swift's native `Codable` protocol for optimal performance
-- 🎨 **Pretty Printing**: Human-readable JSON output
 
 ## Requirements
 
-- Swift 6.2+
+- Swift 5.9+
 - iOS 16.0+
 - macOS 13.0+
 - tvOS 16.0+
@@ -58,13 +57,15 @@ Now you can automatically encode and decode JSON:
 // Create a user
 let user = User(id: 1, name: "John Doe", email: "john@example.com", age: 30)
 
-// Encode to JSON string
-let jsonString = try user.toJSONString()
+// Encode to JSON data
+let jsonData = try JSONEncoder().encode(user)
+let jsonString = String(data: jsonData, encoding: .utf8)!
 print(jsonString)
 // Output: {"id":1,"name":"John Doe","email":"john@example.com","age":30}
 
 // Decode from JSON string
-let decodedUser = try User.fromJSONString(jsonString)
+let data = jsonString.data(using: .utf8)!
+let decodedUser = try JSONDecoder().decode(User.self, from: data)
 print(decodedUser.name) // "John Doe"
 ```
 
@@ -156,23 +157,6 @@ struct Product {
 }
 ```
 
-### Using the JsonParser Class
-
-For more control, use the static methods:
-
-```swift
-// Encode with pretty printing
-let prettyJson = try JsonParser.encode(user, prettyPrint: true)
-
-// Decode from Data
-let userData = try JsonParser.encode(user)
-let decodedUser = try JsonParser.decode(userData, as: User.self)
-
-// Convert to/from dictionaries
-let dict = try JsonParser.encodeToDictionary(user)
-let userFromDict = try JsonParser.decodeFromDictionary(dict, as: User.self)
-```
-
 ### Separate Encoding and Decoding
 
 For cases where you only need encoding or decoding, use the dedicated macros:
@@ -240,31 +224,6 @@ struct APIResponse {
 }
 ```
 
-### Error Handling
-
-JsonParserKit provides comprehensive error handling:
-
-```swift
-do {
-    let user = try User.fromJSONString(jsonString)
-    print("User: \(user.name)")
-} catch JsonError.missingRequiredField(let field) {
-    print("Missing required field: \(field)")
-} catch JsonError.typeMismatch(let expected, let actual) {
-    print("Type mismatch: expected \(expected), got \(actual)")
-} catch {
-    print("Other error: \(error)")
-}
-```
-
-## Error Types
-
-- `JsonError.encodingFailed`: Failed to encode object to JSON
-- `JsonError.decodingFailed`: Failed to decode JSON to object
-- `JsonError.invalidJSON`: Invalid JSON format
-- `JsonError.invalidString`: Invalid string encoding
-- `JsonError.missingRequiredField(String)`: Missing required field
-- `JsonError.typeMismatch(String, String)`: Type mismatch
 
 ## Performance Considerations
 
@@ -323,7 +282,7 @@ struct User {
     let id: Int
     let name: String
 }
-// Now just use: User.fromJSONString(jsonString)
+// Now just use: try JSONDecoder().decode(User.self, from: jsonData)
 ```
 
 ## Contributing
