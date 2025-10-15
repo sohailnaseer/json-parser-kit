@@ -6,10 +6,12 @@ A powerful Swift JSON parsing library that leverages Swift's built-in `Codable` 
 
 - 🚀 **Swift Macros**: Automatically generate JSON encoding/decoding code
 - 🔑 **Custom JSON Keys**: Map Swift property names to custom JSON field names
-- 💡 **Default Values**: Provide fallback values for missing JSON fields
+- 🐍 **Key Strategy**: Automatic snake_case conversion for JSON keys
+- 🎯 **Selective Coding**: Use `@JsonDecodable` or `@JsonEncodable` for specific needs
+- 🚫 **Property Exclusion**: Skip properties from JSON serialization with `@JsonExclude`
+- 🛡️ **Safe Array Decoding**: Skip invalid elements instead of failing
 - 📱 **Platform Support**: Works on iOS, macOS, tvOS, and watchOS
 - ⚡ **Performance**: Built on Swift's native `Codable` protocol for optimal performance
-- 🛡️ **Type Safety**: Full compile-time type checking
 - 🎨 **Pretty Printing**: Human-readable JSON output
 
 ## Requirements
@@ -92,24 +94,25 @@ This will generate JSON like:
 }
 ```
 
-### Default Values
+### Key Strategy
 
-Use the `@DefaultValue` macro to provide fallback values:
+The `@JsonCodable` macro supports two key strategies for property name conversion:
 
 ```swift
+// Default: snake_case strategy
 @JsonCodable
-struct Settings {
-    let theme: String
-    @DefaultValue("en")
-    let language: String
-    @DefaultValue(true)
-    let notifications: Bool
-    @DefaultValue(0.0)
-    let volume: Double
+struct User {
+    let firstName: String  // becomes "first_name" in JSON
+    let lastName: String   // becomes "last_name" in JSON
+}
+
+// Keep original property names
+@JsonCodable(.original)
+struct Product {
+    let productId: String  // stays "productId" in JSON
+    let productName: String // stays "productName" in JSON
 }
 ```
-
-If the JSON doesn't contain these fields, the default values will be used.
 
 ### Optional Properties
 
@@ -170,19 +173,54 @@ let dict = try JsonParser.encodeToDictionary(user)
 let userFromDict = try JsonParser.decodeFromDictionary(dict, as: User.self)
 ```
 
-### Property Wrapper for Default Values
+### Separate Encoding and Decoding
 
-Use the `@Default` property wrapper for more complex default value scenarios:
+For cases where you only need encoding or decoding, use the dedicated macros:
+
+```swift
+// Only decoding needed
+@JsonDecodable
+struct APIResponse {
+    let status: String
+    let data: [String: Any]
+}
+
+// Only encoding needed
+@JsonEncodable
+struct RequestPayload {
+    let id: String
+    let params: [String: Any]
+}
+```
+
+### Excluding Properties
+
+Use `@JsonExclude` to exclude properties from JSON serialization:
 
 ```swift
 @JsonCodable
-struct Configuration {
-    @Default(wrappedValue: nil, defaultValue: "default")
-    let theme: String?
+struct User {
+    let id: Int
+    let name: String
     
-    @Default(wrappedValue: nil, defaultValue: 100)
-    let maxItems: Int?
+    @JsonExclude
+    let temporaryCache: [String: Any] // This won't be included in JSON
 }
+```
+
+### Safe Array Decoding
+
+JsonParserKit provides safe array decoding that skips invalid elements instead of failing:
+
+```swift
+@JsonCodable
+struct Response {
+    let validItems: [Item] // Will contain only successfully decoded items
+}
+
+// If the JSON contains invalid items, they will be skipped:
+// Input: {"validItems": [{"id": 1}, {"invalid": true}, {"id": 2}]}
+// Result: validItems will contain items with id 1 and 2, skipping the invalid one
 ```
 
 ## Advanced Features
