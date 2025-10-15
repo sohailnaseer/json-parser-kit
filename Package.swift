@@ -24,6 +24,11 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-syntax.git", from: "510.0.0"),
     ],
     targets: [
+        .target(
+            name: "JsonParserKitCore",
+            dependencies: []
+        ),
+        
         .macro(
             name: "JsonParserKitMacros",
             dependencies: [
@@ -31,12 +36,16 @@ let package = Package(
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+                "JsonParserKitCore"
             ]
         ),
         
         .target(
             name: "JsonParserKit",
-            dependencies: ["JsonParserKitMacros"]
+            dependencies: [
+                "JsonParserKitMacros",
+                "JsonParserKitCore"
+            ]
         ),
         
         .executableTarget(
@@ -49,7 +58,8 @@ let package = Package(
             name: "JsonParserKitTests",
             dependencies: [
                 "JsonParserKit",
-                "JsonParserKitMacros"
+                "JsonParserKitMacros",
+                "JsonParserKitCore"
             ]
         ),
     ]

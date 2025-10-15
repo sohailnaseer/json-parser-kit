@@ -3,6 +3,7 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import JsonParserKitCore
 
 /// A macro that adds Codable conformance to a type
 public struct JsonCodableMacro: MemberMacro, ExtensionMacro {
@@ -13,7 +14,8 @@ public struct JsonCodableMacro: MemberMacro, ExtensionMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        let helper = JsonParserHelper(declaration: declaration)
+        let strategy = extractStrategy(from: node)
+        let helper = JsonParserHelper(declaration: declaration, keyStrategy: strategy)
         
         guard helper.hasProperties else {
             return []
@@ -24,6 +26,16 @@ public struct JsonCodableMacro: MemberMacro, ExtensionMacro {
             helper.generateInitFromDecoder(),
             helper.generateEncode()
         ]
+    }
+    
+    private static func extractStrategy(from node: AttributeSyntax) -> JsonKeyStrategy {
+        guard let argument = node.arguments?.as(LabeledExprListSyntax.self)?.first?.expression,
+              let memberAccess = argument.as(MemberAccessExprSyntax.self) 
+        else {
+            return .original
+        }
+
+        return memberAccess.declName.baseName.text == "snakeCase" ? .snakeCase : .original
     }
     
     public static func expansion(

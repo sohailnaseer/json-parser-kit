@@ -1,4 +1,5 @@
 import SwiftSyntax
+import JsonParserKitCore
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
@@ -11,11 +12,29 @@ final class JsonParserHelper {
     /// The extracted properties from the declaration
     private let properties: [PropertyInfo]
     
-    /// Initialize the helper with a declaration
-    /// - Parameter declaration: The declaration to process
-    init(declaration: DeclGroupSyntax) {
+    /// The key conversion strategy to use
+    private let keyStrategy: JsonKeyStrategy
+    
+    /// Initialize the helper with a declaration and key strategy
+    /// - Parameters:
+    ///   - declaration: The declaration to process
+    ///   - keyStrategy: The strategy for converting property names to JSON keys
+    init(declaration: DeclGroupSyntax, keyStrategy: JsonKeyStrategy) {
         self.declaration = declaration
+        self.keyStrategy = keyStrategy
         self.properties = Self.extractProperties(from: declaration)
+    }
+    
+    /// Convert a property name to its JSON key name based on the strategy
+    /// - Parameter propertyName: The original property name
+    /// - Returns: The converted key name
+    private func convertToJsonKey(_ propertyName: String) -> String {
+        switch keyStrategy {
+        case .snakeCase:
+            return StringCaseConverter.toSnakeCase(propertyName)
+        case .original:
+            return propertyName
+        }
     }
     
     /// Whether the declaration has any properties to process
@@ -27,7 +46,7 @@ final class JsonParserHelper {
     /// - Returns: The generated CodingKeys enum declaration
     func generateCodingKeys() -> DeclSyntax {
         let casesString = properties.map { property in
-            let jsonKey = property.jsonKey ?? property.name
+            let jsonKey = property.jsonKey ?? convertToJsonKey(property.name)
             return jsonKey == property.name
                 ? "        case \(property.name)"
                 : "        case \(property.name) = \"\(jsonKey)\""
@@ -81,18 +100,13 @@ final class JsonParserHelper {
         let keyPath = ".\(propertyName)"
         
         switch (property.isOptional, property.hasDefaultValue, property.defaultValueExpr) {
-        case (true, true, .some(let defaultExpr)):
+        case (true, true, .some(let defaultExpr)),
+            (false, true, .some(let defaultExpr)):
             return "        self.\(propertyName) = (try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
             
         case (true, false, _):
             return "        self.\(propertyName) = try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))"
-            
-        case (false, true, .some(let defaultExpr)):
-            return "        self.\(propertyName) = (try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
-            
-        case (false, false, _):
-            return "        self.\(propertyName) = try container.decode(\(unwrappedType).self, forKey: \(keyPath))"
-            
+
         default:
             return "        self.\(propertyName) = try container.decode(\(unwrappedType).self, forKey: \(keyPath))"
         }
@@ -102,16 +116,19 @@ final class JsonParserHelper {
     /// - Parameter declaration: The declaration to process
     /// - Returns: Array of PropertyInfo for each valid property
     private static func extractProperties(from declaration: DeclGroupSyntax) -> [PropertyInfo] {
-        declaration.memberBlock.members.compactMap { member in
+        var properties = [PropertyInfo]()
+        
+        for member in declaration.memberBlock.members {
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self),
                   !variableDecl.isStatic,
-                  variableDecl.isStoredProperty else {
-                return nil
+                  variableDecl.isStoredProperty
+            else {
+                continue
             }
             
-            return variableDecl.bindings.compactMap { binding in
+            for binding in variableDecl.bindings {
                 guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self) else {
-                    return nil
+                    continue
                 }
                 
                 let propertyName = identifier.identifier.text
@@ -120,17 +137,21 @@ final class JsonParserHelper {
                 let attributes = variableDecl.attributes
                 
                 guard !attributes.hasJsonExclude else {
-                    return nil
+                    continue
                 }
                 
-                return PropertyInfo(
+                let propertyInfo = PropertyInfo(
                     name: propertyName,
                     type: propertyType,
                     jsonKey: attributes.jsonKeyValue,
                     hasDefaultValue: defaultValue != nil,
                     defaultValueExpr: defaultValue
                 )
+                
+                properties.append(propertyInfo)
             }
-        }.flatMap { $0 }
+        }
+        
+        return properties
     }
 }
