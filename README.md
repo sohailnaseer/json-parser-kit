@@ -16,10 +16,10 @@ A powerful Swift JSON parsing library that leverages Swift's built-in `Codable` 
 ## Requirements
 
 - Swift 5.9+
-- iOS 16.0+
+- iOS 13.0+
 - macOS 13.0+
-- tvOS 16.0+
-- watchOS 9.0+
+- tvOS 13.0+
+- watchOS 6.0+
 
 ## Installation
 
