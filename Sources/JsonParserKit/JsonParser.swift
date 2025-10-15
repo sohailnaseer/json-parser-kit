@@ -3,15 +3,15 @@ import JsonParserKitCore
 
 @attached(member, names: named(CodingKeys), named(init(from:)), named(encode(to:)))
 @attached(extension, conformances: Codable)
-public macro JsonCodable(_ strategy: JsonKeyStrategy = .original) = #externalMacro(module: "JsonParserKitMacros", type: "JsonCodableMacro")
+public macro JsonCodable(_ strategy: JsonKeyStrategy = .snakeCase) = #externalMacro(module: "JsonParserKitMacros", type: "JsonCodableMacro")
 
 @attached(member, names: named(CodingKeys), named(init(from:)))
 @attached(extension, conformances: Decodable)
-public macro JsonDecodable(_ strategy: JsonKeyStrategy = .original) = #externalMacro(module: "JsonParserKitMacros", type: "JsonDecodableMacro")
+public macro JsonDecodable(_ strategy: JsonKeyStrategy = .snakeCase) = #externalMacro(module: "JsonParserKitMacros", type: "JsonDecodableMacro")
 
 @attached(member, names: named(CodingKeys), named(encode(to:)))
 @attached(extension, conformances: Encodable)
-public macro JsonEncodable(_ strategy: JsonKeyStrategy = .original) = #externalMacro(module: "JsonParserKitMacros", type: "JsonEncodableMacro")
+public macro JsonEncodable(_ strategy: JsonKeyStrategy = .snakeCase) = #externalMacro(module: "JsonParserKitMacros", type: "JsonEncodableMacro")
 
 @attached(peer)
 public macro JsonKey(_ key: String) = #externalMacro(module: "JsonParserKitMacros", type: "JsonKeyMacro")

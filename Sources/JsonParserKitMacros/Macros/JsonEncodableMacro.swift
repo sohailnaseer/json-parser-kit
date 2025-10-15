@@ -31,7 +31,7 @@ public struct JsonEncodableMacro: MemberMacro, ExtensionMacro {
         guard let argument = node.arguments?.as(LabeledExprListSyntax.self)?.first?.expression,
               let memberAccess = argument.as(MemberAccessExprSyntax.self) 
         else {
-            return .original
+            return .snakeCase
         }
         
         return memberAccess.declName.baseName.text == "snakeCase" ? .snakeCase : .original

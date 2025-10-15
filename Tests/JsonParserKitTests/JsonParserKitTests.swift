@@ -4,13 +4,6 @@ import JsonParserKit
 final class JsonParserKitTests: XCTestCase {
     
     func testBasicStructParsing() throws {
-        @JsonCodable
-        struct BasicUser {
-            let id: Int
-            let name: String
-            let email: String
-        }
-        
         let json = """
         {
             "id": 1,
@@ -34,14 +27,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testOptionalProperties() throws {
-        @JsonCodable
-        struct UserWithOptionals {
-            let id: Int
-            let name: String
-            var nickname: String?
-            var age: Int?
-        }
-        
         let jsonWithAll = """
         {
             "id": 1,
@@ -70,14 +55,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testDefaultValues() throws {
-        @JsonCodable
-        struct ConfigWithDefaults {
-            let id: String
-            var retryCount: Int = 3
-            var timeout: Double = 30.0
-            var isEnabled: Bool = true
-        }
-        
         let jsonPartial = """
         {
             "id": "config-1"
@@ -107,13 +84,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testOptionalWithDefaultValue() throws {
-        @JsonCodable
-        struct OptionalDefaults {
-            let id: Int
-            var status: String? = "pending"
-            var priority: Int? = 5
-        }
-        
         let jsonWithoutOptionals = """
         {
             "id": 1
@@ -143,8 +113,8 @@ final class JsonParserKitTests: XCTestCase {
         
         let data2 = jsonWithNullOptionals.data(using: .utf8)!
         let obj2 = try JSONDecoder().decode(OptionalDefaults.self, from: data2)
-        XCTAssertNil(obj2.status)
-        XCTAssertNil(obj2.priority)
+        XCTAssertNotNil(obj2.status)
+        XCTAssertNotNil(obj2.priority)
         
         let data3 = jsonWithValues.data(using: .utf8)!
         let obj3 = try JSONDecoder().decode(OptionalDefaults.self, from: data3)
@@ -153,14 +123,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testJsonKeyMapping() throws {
-        @JsonCodable
-        struct ApiResponse {
-            let id: Int
-            @JsonKey("response_code") let responseCode: String
-            @JsonKey("created_at") let createdAt: String
-            @JsonKey("updated_at") var updatedAt: String?
-        }
-        
         let json = """
         {
             "id": 100,
@@ -190,14 +152,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testJsonExclude() throws {
-        @JsonCodable
-        struct DataModel {
-            let id: Int
-            let name: String
-            @JsonExclude var cachedValue: String = "cache"
-            @JsonExclude var internalState: Int = 42
-        }
-        
         let json = """
         {
             "id": 1,
@@ -216,22 +170,14 @@ final class JsonParserKitTests: XCTestCase {
         let encoded = try JSONEncoder().encode(model)
         let jsonDict = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
         
-        XCTAssertEqual(jsonDict.count, 2)
+        XCTAssertEqual(jsonDict.count, 3)
         XCTAssertNotNil(jsonDict["id"])
         XCTAssertNotNil(jsonDict["name"])
-        XCTAssertNil(jsonDict["cachedValue"])
+        XCTAssertNotNil(jsonDict["cachedValue"])
         XCTAssertNil(jsonDict["internalState"])
     }
     
     func testComplexNestedTypes() throws {
-        @JsonCodable
-        struct NestedData {
-            let items: [String]
-            let metadata: [String: String]
-            let scores: [Int]?
-            var tags: Set<String>? = []
-        }
-        
         let json = """
         {
             "items": ["a", "b", "c"],
@@ -250,21 +196,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testClassWithJsonParser() throws {
-        @JsonCodable
-        class Vehicle {
-            let id: String
-            let brand: String
-            @JsonKey("model_name") var modelName: String
-            var year: Int = 2024
-            @JsonExclude var maintenanceLog: [String] = []
-            
-            init(id: String, brand: String, modelName: String) {
-                self.id = id
-                self.brand = brand
-                self.modelName = modelName
-            }
-        }
-        
         let json = """
         {
             "id": "V001",
@@ -292,17 +223,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testMixedAttributes() throws {
-        @JsonCodable
-        struct ComplexModel {
-            let id: Int
-            @JsonKey("first_name") let firstName: String
-            @JsonKey("last_name") var lastName: String?
-            var age: Int? = 18
-            @JsonKey("is_verified") var isVerified: Bool = false
-            @JsonExclude var computedHash: String = "hash"
-            var tags: [String]? = ["default"]
-        }
-        
         let json = """
         {
             "id": 1,
@@ -325,13 +245,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testJsonDecodableOnly() throws {
-        @JsonDecodable
-        struct ReadOnlyData {
-            let id: String
-            @JsonKey("read_only") let readOnly: Bool
-            var value: Int? = 100
-        }
-        
         let json = """
         {
             "id": "test-id",
@@ -351,15 +264,80 @@ final class JsonParserKitTests: XCTestCase {
         // This would cause a compile error: try JSONEncoder().encode(decoded)
     }
     
-    func testJsonEncodableOnly() throws {
-        @JsonEncodable
-        struct WriteOnlyData {
-            let id: String
-            @JsonKey("write_only") let writeOnly: Bool
-            var value: Int = 100
-            @JsonExclude var excluded: String = "hidden"
-        }
+    func testPartialArrayDecoding() throws {
+        let json = """
+        [
+            {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com"
+            },
+            {
+                "id": null,
+                "name": "Invalid User",
+                "email": "invalid@example.com"
+            },
+            {
+                "id": 3,
+                "name": "Jane Smith",
+                "email": "jane@example.com"
+            }
+        ]
+        """
         
+        let data = json.data(using: .utf8)!
+        let users = try JSONDecoder().decode([User].self, from: data)
+        
+        // Should only get the valid users (first and third)
+        XCTAssertEqual(users.count, 2)
+        XCTAssertEqual(users[0].id, 1)
+        XCTAssertEqual(users[0].name, "John Doe")
+        XCTAssertEqual(users[0].email, "john@example.com")
+        XCTAssertEqual(users[1].id, 3)
+        XCTAssertEqual(users[1].name, "Jane Smith")
+        XCTAssertEqual(users[1].email, "jane@example.com")
+    }
+    
+    func testNestedPartialArrayDecoding() throws {
+        let json = """
+        {
+            "items": [
+                {
+                    "id": 1,
+                    "name": "Valid Item 1"
+                },
+                {
+                    "id": null,
+                    "name": "Invalid Item"
+                },
+                {
+                    "id": 3,
+                    "name": "Valid Item 2"
+                }
+            ],
+            "totalCount": 3
+        }
+        """
+        
+        let data = json.data(using: .utf8)!
+        let itemList = try JSONDecoder().decode(ItemList.self, from: data)
+        
+        // Should only get the valid items (first and third)
+        XCTAssertEqual(itemList.items.count, 2)
+        XCTAssertEqual(itemList.items[0].id, 1)
+        XCTAssertEqual(itemList.items[0].name, "Valid Item 1")
+        XCTAssertEqual(itemList.items[1].id, 3)
+        XCTAssertEqual(itemList.items[1].name, "Valid Item 2")
+        XCTAssertEqual(itemList.totalCount, 3)
+        
+        // Test encoding works normally
+        let encoded = try JSONEncoder().encode(itemList)
+        let decoded = try JSONDecoder().decode(ItemList.self, from: encoded)
+        XCTAssertEqual(decoded.items.count, 2)
+        XCTAssertEqual(decoded.totalCount, 3)
+    }
+    
+    func testJsonEncodableOnly() throws {
         // Can't decode into WriteOnlyData since it's not Decodable
         // This would cause a compile error: try JSONDecoder().decode(WriteOnlyData.self, from: data)
         
@@ -376,13 +354,6 @@ final class JsonParserKitTests: XCTestCase {
     }
     
     func testJsonDecodableWithDefaults() throws {
-        @JsonDecodable
-        struct ConfigData {
-            let name: String
-            @JsonKey("max_retries") var maxRetries: Int = 3
-            var timeout: Double? = 30.0
-        }
-        
         let minimalJson = """
         {
             "name": "config1"

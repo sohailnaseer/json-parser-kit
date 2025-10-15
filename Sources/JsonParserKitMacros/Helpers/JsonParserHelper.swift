@@ -66,8 +66,11 @@ final class JsonParserHelper {
             .map(generateDecodingStatement)
             .joined(separator: "\n")
         
+        let isClass = declaration.is(ClassDeclSyntax.self)
+        let requiredKeyword = isClass ? "required " : ""
+        
         return """
-        public init(from decoder: Decoder) throws {
+        \(raw: requiredKeyword)public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
         \(raw: decodingStatements)
         }
@@ -79,8 +82,8 @@ final class JsonParserHelper {
     func generateEncode() -> DeclSyntax {
         let encodingStatements = properties.map { property in
             property.isOptional
-                ? "        try container.encodeIfPresent(\(property.name), forKey: .\(property.name))"
-                : "        try container.encode(\(property.name), forKey: .\(property.name))"
+                ? "try container.encodeIfPresent(\(property.name), forKey: .\(property.name))"
+                : "try container.encode(\(property.name), forKey: .\(property.name))"
         }.joined(separator: "\n")
         
         return """
@@ -102,13 +105,13 @@ final class JsonParserHelper {
         switch (property.isOptional, property.hasDefaultValue, property.defaultValueExpr) {
         case (true, true, .some(let defaultExpr)),
             (false, true, .some(let defaultExpr)):
-            return "        self.\(propertyName) = (try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
+            return "self.\(propertyName) = (try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))) ?? \(defaultExpr)"
             
         case (true, false, _):
-            return "        self.\(propertyName) = try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))"
+            return "self.\(propertyName) = try? container.decodeIfPresent(\(unwrappedType).self, forKey: \(keyPath))"
 
         default:
-            return "        self.\(propertyName) = try container.decode(\(unwrappedType).self, forKey: \(keyPath))"
+            return "self.\(propertyName) = try container.decode(\(unwrappedType).self, forKey: \(keyPath))"
         }
     }
     
