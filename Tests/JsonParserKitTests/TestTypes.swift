@@ -9,6 +9,7 @@ struct BasicUser {
     let id: Int
     let name: String
     let email: String
+    let mobileUUID: String
 }
 
 @JsonCodable

@@ -7,13 +7,16 @@ public enum StringCaseConverter {
     /// - Returns: The snake_case version (e.g., "user_name")
     public static func toSnakeCase(_ input: String) -> String {
         var result = ""
-        for (index, char) in input.enumerated() {
-            if char.isUppercase && index > 0 {
+        let chars = Array(input)
+        
+        for (index, char) in chars.enumerated() {
+            if char.isUppercase && index > 0 && chars[index - 1].isLowercase {
                 result += "_\(char.lowercased())"
             } else {
                 result += String(char.lowercased())
             }
         }
+        
         return result
     }
 }

@@ -44,6 +44,14 @@ public struct JsonEncodableMacro: MemberMacro, ExtensionMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [ExtensionDeclSyntax] {
-        [try ExtensionDeclSyntax("extension \(type.trimmed): Encodable {}")]
+        let alreadyConforms = protocols.contains { proto in
+            guard let id = proto.as(IdentifierTypeSyntax.self) else {
+                return false
+            }
+
+            return id.name.text == "Encodable"
+        }
+
+        return alreadyConforms ? [] : [try ExtensionDeclSyntax("extension \(type.trimmed): Encodable {}")]
     }
 }

@@ -8,7 +8,8 @@ final class JsonParserKitTests: XCTestCase {
         {
             "id": 1,
             "name": "John Doe",
-            "email": "john@example.com"
+            "email": "john@example.com",
+            "mobile_uuid": "12345789"
         }
         """
         
