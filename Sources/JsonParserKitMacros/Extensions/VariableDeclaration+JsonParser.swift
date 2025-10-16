@@ -6,6 +6,8 @@ extension VariableDeclSyntax {
     }
     
     var isStoredProperty: Bool {
-        bindingSpecifier.text == "let" || bindingSpecifier.text == "var"
+        // Only treat as stored property if it's a 'let' or 'var', and no accessor block (computed property)
+        (bindingSpecifier.text == "let" || bindingSpecifier.text == "var")
+            && bindings.allSatisfy { $0.accessorBlock == nil }
     }
 }
